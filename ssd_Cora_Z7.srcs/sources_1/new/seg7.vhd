@@ -41,35 +41,51 @@ architecture rtl of seg7 is
   -- Binary-coded decimal representation of value
   subtype digit_type is integer range 0 to 9;
   type digits_type is array (1 downto 0) of digit_type;
-  signal digit : digit_type;
+
   signal digits : digits_type;
+  signal digit : digit_type;
+  
 
   -- Clock cycle counter for alternating between digits
-  -- refresh_rate = (2 ** clk_cnt_bits) / clk_frequency
-  signal clk_cnt : unsigned(clk_cnt_bits - 1 downto 0);
+  signal clk_cnt : unsigned(clk_cnt_bits - 1 downto 0) := (others => '0');
+
+  -- Internal signal to read from
+  signal digit_sel_r : std_logic;
+
 
 begin
 
-  -- Convert to BCD
-  digits(1) <= value / 10;
-  digits(0) <= value - ((value / 10) * 10);
+  -- Drive the out port from the internal signal
+  digit_sel <= digit_sel_r;
 
-  -- Output one of the two digits
-  digit_sel <= clk_cnt(clk_cnt'high);
-  digit <= digits(0) when clk_cnt(clk_cnt'high) = '0' else digits(1);
 
-  COUNT_PROC : process(clk)
+  --------------------------------------------------------------------
+  -- Synchronous refresh counter
+  --------------------------------------------------------------------
+  process(clk)
   begin
     if rising_edge(clk) then
       if rst = '1' then
         clk_cnt <= (others => '0');
-        
+        digit_sel_r <= '0';  -- reset value
       else
         clk_cnt <= clk_cnt + 1;
-        
+        digit_sel_r <= clk_cnt(clk_cnt'high);  -- use internal signal
       end if;
     end if;
   end process;
+
+  --------------------------------------------------------------------
+  -- BCD Conversion (combinational)
+  --------------------------------------------------------------------
+  digits(1) <= value / 10;
+  digits(0) <= value mod 10;
+
+  --------------------------------------------------------------------
+  -- Digit multiplexing logic (combinational)
+  --------------------------------------------------------------------
+  digit <= digits(0) when digit_sel_r = '0' else digits(1);
+
 
   ENCODER_PROC : process(digit)
   begin
@@ -85,8 +101,10 @@ begin
       when 7 => segments <= "0000111";
       when 8 => segments <= "1111111";
       when 9 => segments <= "1101111";
+      when others => segments <= "0000000";
     
-      end case;
-  end process;
+    end case;
+  end process;      
+    
 
 end architecture;

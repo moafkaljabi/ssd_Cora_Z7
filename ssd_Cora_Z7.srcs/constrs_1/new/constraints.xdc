@@ -20,5 +20,8 @@ set_property -dict {PACKAGE_PIN W13 IOSTANDARD LVCMOS33} [get_ports {jb[7]}]
 set_property DRIVE 8 [get_ports {jb[*]}]
 set_property SLEW SLOW [get_ports {jb[*]}]
 
+# rst
+set_property -dict { PACKAGE_PIN D20   IOSTANDARD LVCMOS33 } [get_ports { rst }]; #IO_L4N_T0_35 Sch=btn[0]
+
 
 
